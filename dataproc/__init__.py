@@ -21,7 +21,7 @@ __zip_safe__    = False
 __exclude_project_dirs__ = "tests fstore".split()
 __python_version_required__ = '>3.6'
 __install_requires__ = [
-                        'pyFAI', 'fabio', 'pyopencl'
+                        'pyFAI', 'fabio', 'pyopencl',
                         'numpy', 'scipy', 'pathlib', 'pandas', 'matplotlib',
                        ]
 
