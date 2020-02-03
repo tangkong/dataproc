@@ -1,0 +1,16 @@
+{
+    "specPath": "C:\\Users\\roberttk\\Desktop\\SLAC_RA\\dataproc\\fstore\\",
+    "imagePath": "C:\\Users\\roberttk\\Desktop\\SLAC_RA\\dataproc\\fstore\\Pilatus\\",
+    "exportPath": "C:\\Users\\roberttk\\Desktop\\SLAC_RA\\dataproc\\fstore\\export\\", 
+    "expInfo": {"dist": 0.702864,
+                "center1": 277,
+                "center2": 91,
+                "detector": "Pilatus100k",
+                "wavelength": 7.9989E-11,
+                "orientation": "vertical"
+               },
+    "fitInfo": {"peakShape": "Voigt",
+                "fitMode": "fixed",
+                "numCurves": 4
+               }
+}

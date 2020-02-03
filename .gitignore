@@ -1,0 +1,7 @@
+fstore/
+__pycache__/
+.vscode/
+*/__pycache__/
+*.pyc
+*.egg-info/
+*.egg
