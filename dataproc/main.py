@@ -1,5 +1,5 @@
 from dataproc.workflows.alanWorkflow import alanWorkflow
 
-configPath = 'C:\\Users\\roberttk\\Desktop\\SLAC_RA\\dataProc\\dataproc\\workflows\\alanConfig'
+configPath = 'C:\\Users\\b_mehta\\Desktop\\processing\\dataproc\\dataproc\\workflows\\alanConfig'
 
 alanWorkflow(configPath)

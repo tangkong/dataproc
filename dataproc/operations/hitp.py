@@ -72,7 +72,7 @@ def create_scan(imgList: list, specPath: Path,
         dat = load_image(im)    
 
         if expInfo['orientation'].lower() == "vertical":
-            imgs.append(np.rot90(dat, k=3))
+            imgs.append(np.rot90(dat, k=1))
         elif expInfo['orientation'].lower() == 'horizontal':
             imgs.append(dat)
         
@@ -85,9 +85,15 @@ def create_scan(imgList: list, specPath: Path,
                     rot2=np.pi/180*float(spec['TwoTheta'][scanNo]),
                     rot3=-np.pi/2)
         ais.append(ai)
-
+    ##############################################################################
+    ##############################################################################
+    ##############################################################################
     mg = MultiGeometry(ais, unit="2th_deg", 
-                        radial_range=(0, 70), azimuth_range=(-50, 50))
+                        radial_range=(16, 28), azimuth_range=(-20, 20))
+    ##############################################################################
+    ##############################################################################
+    ##############################################################################
+
 
     return mg, imgs
 
@@ -322,21 +328,21 @@ def fit_peak(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),
         fit = func(x, *guessHold)
         resid = fit - y
         errorNew = np.mean(np.absolute(resid) / (y+1))
-        if np.absolute(errorCurr - errorNew) < 0.0001:
-            print('no change in error: {}'.format(errorNew))
+        # if np.absolute(errorCurr - errorNew) < 0.0001:
+        #     print('no change in error: {}'.format(errorNew))
 
-            if curveCnt == 0: # if first peak does not change error
-                # build guess real guess array, update fit
-                guess = guessHold
+        #     if curveCnt == 0: # if first peak does not change error
+        #         # build guess real guess array, update fit
+        #         guess = guessHold
 
-                # concatenate lists for bounds for real fit
-                boundLower += boundLowerPart 
-                boundUpper += boundUpperPart
+        #         # concatenate lists for bounds for real fit
+        #         boundLower += boundLowerPart 
+        #         boundUpper += boundUpperPart
 
-                # Combine bounds into tuple for input
-                bounds = tuple([boundLower, boundUpper])
+        #         # Combine bounds into tuple for input
+        #         bounds = tuple([boundLower, boundUpper])
            
-            break #end iteration
+        #     # break #end iteration
 
         # build guess real guess array, update fit
         guess = guessHold
