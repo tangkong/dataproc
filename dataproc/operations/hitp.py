@@ -164,7 +164,7 @@ def summarize_params(csv_path: Path,
     for f in csvList:
         df = pd.read_csv(f)
         df = df.rename(columns={df.columns[0]: 'param'})
-        print(df)
+
         # whacky sorting thing
         df = df.set_index('param')
         df = df.sort_values(by='x0', axis=1)
@@ -174,8 +174,7 @@ def summarize_params(csv_path: Path,
         # Flatten and group.  Kind of a 'join on'
         melt = pd.melt(df, id_vars=df.columns[0], 
                         value_vars=df.columns[1:], value_name=f.stem)
-        print(df)
-        print(melt)
+
         if result is None:
             result = melt
         else:
