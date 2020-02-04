@@ -41,14 +41,23 @@ def alanWorkflow(configPath):
 
     # cache names of processed spec files
     processed = []
+    currLen = 0
+    print(' =========== Starting processing script =========== ')
+    print('On keypress, script will process available files')
     while run_enable:
-        print('Checking for new spec files')
+        input('Press enter to continue...')
+
+        print('    ----Checking for new spec files')
         # Gather spec files
         specPath = Path(cfg['specPath'])
         specList = folder_select(specPath, '*scan1.csv')
 
+
         # process unseen spec files
         for s in specList:
+            if not specList: # is empty:
+                print('no spec files found')
+                break 
             if s in processed:
                 continue
             else:
@@ -65,7 +74,7 @@ def alanWorkflow(configPath):
                 # Process image files
                 imList = folder_select(Path(cfg['imagePath']), f'*{template}*.raw')
                 mg, ims = create_scan(imList, s, expInfo=expInfo)
-                
+                print(np.shape(ims))
                 # Mask image.... This is bad here ----------------------------------
                 mask = np.ones(np.shape(ims[0]))
                 mask[100:400, :] = 0
@@ -75,6 +84,8 @@ def alanWorkflow(configPath):
                 
                 # restrict range?
                 subx, suby = int1d[0], int1d[1]
+                # Background subtract/move to zero
+                suby = suby - np.min(suby)
 
                 # Restrict range and fit peaks
                 curveParams, derivedParams = fit_peak(subx, suby,
@@ -89,15 +100,13 @@ def alanWorkflow(configPath):
                 save_dict(derivedParams, cfg['exportPath'], template + '_derived')
                 save_curve_fit(subx, suby, curveParams, cfg['exportPath'], 
                                 template, peakShape=fitInfo['peakShape'])
-                
-        # Gather and summarize
-        print('summarizing information...')
-        summarize_params(cfg['exportPath'], '*_derived_params.csv', '_derived_summary.csv')
-        summarize_params(cfg['exportPath'], '*_curve_params.csv', '_curve_summary.csv')
+        newLen = len(processed)
+        if currLen < newLen:
+            # Gather and summarize
+            print('summarizing information...')
+            summarize_params(cfg['exportPath'], '*_derived_params.csv', '_derived_summary.csv')
+            summarize_params(cfg['exportPath'], '*_curve_params.csv', '_curve_summary.csv')
 
+        currLen = newLen
 
-        # run conditions
-        t=300
-        print(f'sleeping for {t} seconds')
-        time.sleep(t)
-        run_enable = False
+        break
