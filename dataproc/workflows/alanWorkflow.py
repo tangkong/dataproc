@@ -56,7 +56,7 @@ def alanWorkflow(configPath):
                 # Cache spec file
                 processed.append(s)
 
-                print('    ----Processing: {s}')
+                print(f'    ----Processing: {s}')
                 # Grab image files
                 # ----------- Customize condition for identifying image files ---------
                 template = s.stem  # Grabs file name without extension
