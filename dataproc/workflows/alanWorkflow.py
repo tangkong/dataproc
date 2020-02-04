@@ -81,10 +81,9 @@ def alanWorkflow():
 
                 # output/saving 
                 save_qchi(mg, ims, mask, cfg['exportPath'], template)
-                break
                 save_Itth(mg, ims, mask, cfg['exportPath'], template)
                 save_dict(curveParams, cfg['exportPath'], template  + '_curve')
-                save_dict(derivedParams, cfg['exportPath'], template+'_derived')
+                save_dict(derivedParams, cfg['exportPath'], template + '_derived')
                 save_curve_fit(subx, suby, curveParams, cfg['exportPath'], 
                                 template, peakShape=fitInfo['peakShape'])
                 

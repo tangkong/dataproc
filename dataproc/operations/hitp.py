@@ -164,10 +164,18 @@ def summarize_params(csv_path: Path,
     for f in csvList:
         df = pd.read_csv(f)
         df = df.rename(columns={df.columns[0]: 'param'})
+        print(df)
+        # whacky sorting thing
+        df = df.set_index('param')
+        df = df.sort_values(by='x0', axis=1)
+        df.columns = [f'curve {j}' for j in range(len(df.columns))]
+        df = df.rename_axis('param').reset_index()
+
         # Flatten and group.  Kind of a 'join on'
         melt = pd.melt(df, id_vars=df.columns[0], 
                         value_vars=df.columns[1:], value_name=f.stem)
-
+        print(df)
+        print(melt)
         if result is None:
             result = melt
         else:
@@ -285,7 +293,7 @@ def fit_peak(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),
     # To-do: figure out better way to zero shift
     errorCurr = np.mean(np.absolute(resid) / (y+1))
     print('Peak at {0}, start iteration with error = {1}'.format(x[maxInd], errorCurr))
-    while curveCnt < numCurves and errorCurr > 0.001: 
+    while curveCnt < numCurves: # and errorCurr > 0.001: 
         # place peak at min residual
         xPosGuess = x[np.argmin(resid)]
         guessTemp[0] = xPosGuess
@@ -396,5 +404,6 @@ def fit_peak(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),
         derivedParams[f'curve {j}']['FWHM'] = FWHM[j]
         derivedParams[f'curve {j}']['area'] = area
         derivedParams[f'curve {j}']['area_err'] = err
+        derivedParams[f'curve {j}']['x0'] = curveParams[f'curve {j}']['x0']
     
     return curveParams, derivedParams
