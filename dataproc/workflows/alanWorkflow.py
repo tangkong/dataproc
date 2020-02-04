@@ -10,10 +10,10 @@ from ..operations.hitp import (load_image, create_scan, save_Itth, save_qchi,
                                 summarize_params)
 from ..operations.utils import single_select, folder_select
 
-def alanWorkflow():
+def alanWorkflow(configPath):
     # Configuration setup
     # Grab configs
-    configPath = 'C:\\Users\\roberttk\\Desktop\\SLAC_RA\\dataProc\\dataproc\\workflows\\alanConfig'
+    print(configPath)
     with open(configPath) as jp:
         cfg = json.load(jp)
 
@@ -30,6 +30,8 @@ def alanWorkflow():
     expInfo['poni1'] = cfg['expInfo']['center1'] * pxSize
     expInfo['poni2'] = cfg['expInfo']['center2'] * pxSize
     
+    print('Experimental Info used: \n')
+    print(expInfo)
 
     # Pull out Fit info
     fitInfo = cfg['fitInfo']
@@ -54,6 +56,7 @@ def alanWorkflow():
                 # Cache spec file
                 processed.append(s)
 
+                print('    ----Processing: {s}')
                 # Grab image files
                 # ----------- Customize condition for identifying image files ---------
                 template = s.stem  # Grabs file name without extension
@@ -78,7 +81,7 @@ def alanWorkflow():
                                     peakShape=fitInfo['peakShape'],
                                     fitMode=fitInfo['fitMode'],
                                     numCurves=fitInfo['numCurves'])
-
+                print('    ----Saving data')
                 # output/saving 
                 save_qchi(mg, ims, mask, cfg['exportPath'], template)
                 save_Itth(mg, ims, mask, cfg['exportPath'], template)
@@ -88,6 +91,7 @@ def alanWorkflow():
                                 template, peakShape=fitInfo['peakShape'])
                 
         # Gather and summarize
+        print('summarizing information...')
         summarize_params(cfg['exportPath'], '*_derived_params.csv', '_derived_summary.csv')
         summarize_params(cfg['exportPath'], '*_curve_params.csv', '_curve_summary.csv')
 
