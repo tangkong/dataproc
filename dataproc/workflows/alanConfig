@@ -1,7 +1,7 @@
 {
-    "specPath": "P:\\bl2-1\\Feb2020\\20200203_Cu_SE1_dry_XRD\\",
-    "imagePath": "P:\\bl2-1\\Feb2020\\20200203_Cu_SE1_dry_XRD\\images\\",
-    "exportPath": "P:\\bl2-1\\Feb2020\\20200203_Cu_SE1_dry_XRD\\export\\", 
+    "specPath": "P:\\bl2-1\\Feb2020\\20200204_Pd5_exsitu\\",
+    "imagePath": "P:\\bl2-1\\Feb2020\\20200204_Pd5_exsitu\\images\\",
+    "exportPath": "P:\\bl2-1\\Feb2020\\20200204_Pd5_exsitu\\exporttest\\", 
     "expInfo": {"dist": 0.714728,
                 "center1": 248,
                 "center2": 94,
@@ -11,6 +11,7 @@
                },
     "fitInfo": {"peakShape": "Voigt",
                 "fitMode": "fixed",
-                "numCurves": 2
+                "numCurves": 3,
+                "blockBounds": [18, 21, 23.5]
                }
 }
