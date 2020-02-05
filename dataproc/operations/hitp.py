@@ -7,12 +7,15 @@ Includes:
 import os
 from pathlib import Path
 import numpy as np
+from numpy.polynomial.chebyshev import chebval
+
 import scipy
 import scipy.io
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, basinhopping
 from scipy import integrate, signal
-from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import UnivariateSpline, interp1d
 from scipy.integrate import quad
+
 import pandas as pd
 import fabio
 import re
@@ -147,9 +150,13 @@ def save_Itth(mg: MultiGeometry, imgs: list, mask: np.ndarray,
     int1df = pd.DataFrame(data=int1List[1], index=int1List[0])
     int1df.to_csv(spath + template + '_1D.csv')
 
+    plt.close()
+    
 def save_dict(data: dict, spath: Path, template: str=''):
     """Save data to spath+template, append if already exists
     """
+    os.makedirs(spath, exist_ok=True)
+
     if os.path.exists(spath+template):
         df = pd.read_csv(spath+template+'_params.csv')
         dfnew = pd.DataFrame(data)
@@ -237,6 +244,90 @@ def restrict_range(x, y, xRange: list=None,
 
     """
 
+def bkgd_sub(x, y, downsample_int: int=50) -> (np.ndarray, np.ndarray):
+    """Subtract background with modified chebyshev polynomial
+    """
+    def downsamp(size, x, y):
+        """Downsample data based on size parameter.  Return downsampled data
+        """
+        yNew = y[::size] 
+        xNew = x[::size] 
+        
+        return xNew, yNew
+        
+    def chebFunc(x, *params):
+        """
+        Modified chebyshev function with 1/x 
+        """
+        params = params[0]
+        y = chebval(x, params[:4])
+        E = params[4]
+        y = y + E/x
+        return y
+
+
+    def objFunc(*params):
+        """
+        implement cost function for modified chevbyshev function
+        varies cost to emphasize low Q region
+        Scoping pulls trimmed x, y data from surrounding scope... this is bad
+
+        return: cost of fit 
+        """
+        
+        params = params[0]
+        J = 0
+        fit = chebval(downX, params[:4])
+        E = params[4]
+        fit = fit + E / downX
+
+        for i in range(len(downY)):
+            if downX[i] < 1:    # Treat low Q equally
+                J = J + (downY[i] - fit[i])**4
+            else:
+                if downY[i] < fit[i]:
+                    J = J + (downY[i] - fit[i])**4
+                if downY[i] >= fit[i]:
+                    J = J + (downY[i] - fit[i])**2
+        return J
+        
+    # Create a sparse data set for fitting
+    downX, downY = downsamp(downsample_int, x, y)
+    
+    # Remove points above median + 10% of range
+    medianY = np.median(downY)
+    rangeY = np.max(downY) - np.min(downY)
+    downX = downX[downY <= (medianY + 0.1*rangeY)]
+    downY = downY[downY <= (medianY + 0.1*rangeY)]
+    
+    # Re-append end values to try and fix boundary conditions
+    downX = np.append(np.append(x[0:30:5], downX), x[-30:-1:5])
+    downY = np.append(np.append(y[0:30:5], downY), y[-30:-1:5])
+
+
+    x0 = [1,1,1,1,1]
+    #appears to converge quickly, take 10 iterations rather than 100
+    result = basinhopping(objFunc, x0, niter=10) 
+    bkgd_sparse = chebFunc(x, result.x)
+    # create function that interpolates sparse bkgd
+    f = interp1d(x, bkgd_sparse, kind='cubic', bounds_error=False)
+
+    # expressed background values
+    bkgd1 = f(x)
+    subDataY = y - bkgd1
+
+    # Dump any nan values in all data
+    finalDataY = subDataY[~np.isnan(subDataY)]
+    finalDataX = x[~np.isnan(subDataY)]
+    bkgd = bkgd1[~np.isnan(subDataY)]
+
+    # Offset to make all values > 0 
+    if np.min(subDataY) < 0:
+        finalDataY = finalDataY + np.absolute(np.min(finalDataY))
+
+    return finalDataX, finalDataY
+
+
 defaultFitOpts = {'peakShape': 'voigt', # ('voigt', 'gaussian')
                     'fitMode': 'fixed',
                     'numCurves': 4,
@@ -264,12 +355,12 @@ def fit_peak(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),
                         xRange / 10, xRange / 10 ]
         # x bounds to be replaced
         # [x0, y0, I, alpha, gamma]
-        boundLowTemp = [x[0], np.min(y), 0., 0., 0.]
-        boundUppTemp = [x[-1], np.inf, np.inf, xRange, xRange]
+        boundLowTemp = [x[0], -np.max(y)/4, 0., 0., 0.]
+        boundUppTemp = [x[-1], np.inf, np.inf, xRange/4, xRange/4]
 
-        boundLowerPart = [x[0]-0.05*xRange, np.min(y), 0, 0, 0]
+        boundLowerPart = [x[0]-0.05*xRange, -np.max(y)/4, 0, 0, 0]
         boundUpperPart = [x[-1]+0.05*xRange, np.inf, np.inf, 
-                            xRange, xRange]
+                            xRange/4, xRange/4]
     elif peakShape == 'Gaussian':
         func = gaussFn     
         # x0 and I values to be replaced during loop
@@ -277,11 +368,11 @@ def fit_peak(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),
                         xRange / 10]
         # x bounds to be replaced
         # [x0, y0, I, sigma]
-        boundLowTemp = [x[0]-0.05*xRange, np.min(y), 0., 0.]
-        boundUppTemp = [x[-1]+0.05*xRange, np.inf, np.inf, xRange]
+        boundLowTemp = [x[0]-0.05*xRange, -np.max(y)/4, 0., 0.]
+        boundUppTemp = [x[-1]+0.05*xRange, np.inf, np.inf, xRange/4]
 
-        boundLowerPart = [x[0], np.min(y), 0, 0]
-        boundUpperPart = [x[-1], np.inf, np.inf, xRange]       
+        boundLowerPart = [x[0], -np.max(y)/4, 0, 0]
+        boundUpperPart = [x[-1], np.inf, np.inf, xRange/4]       
 
     # Initialize guess params and bounds for number of curves
     boundUpper = []
