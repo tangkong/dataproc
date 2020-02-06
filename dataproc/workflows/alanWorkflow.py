@@ -7,7 +7,7 @@ import numpy as np
 
 from ..operations.hitp import (load_image, create_scan, save_Itth, save_qchi, 
                                 integrate_1d_mg, fit_peak, save_dict, save_curve_fit, 
-                                summarize_params)
+                                bkgd_sub, summarize_params)
 from ..operations.utils import single_select, folder_select
 
 def alanWorkflow(configPath):
@@ -29,7 +29,8 @@ def alanWorkflow(configPath):
 
     expInfo['poni1'] = cfg['expInfo']['center1'] * pxSize
     expInfo['poni2'] = cfg['expInfo']['center2'] * pxSize
-    
+    expInfo['blockBounds'] = cfg['fitInfo']['blockBounds']
+
     print('Experimental Info used: \n')
     print(expInfo)
 
@@ -86,21 +87,35 @@ def alanWorkflow(configPath):
                 subx, suby = int1d[0], int1d[1]
                 # Background subtract/move to zero
                 suby = suby - np.min(suby)
+                subx, suby = bkgd_sub(subx, suby)
 
-                # Restrict range and fit peaks
-                curveParams, derivedParams = fit_peak(subx, suby,
-                                    peakShape=fitInfo['peakShape'],
-                                    fitMode=fitInfo['fitMode'],
-                                    numCurves=fitInfo['numCurves'])
-                print('    ----Saving data')
-                # output/saving 
-                save_qchi(mg, ims, mask, cfg['exportPath'], template)
-                save_Itth(mg, ims, mask, cfg['exportPath'], template)
-                save_dict(curveParams, cfg['exportPath'], template  + '_curve')
-                save_dict(derivedParams, cfg['exportPath'], template + '_derived')
-                save_curve_fit(subx, suby, curveParams, cfg['exportPath'], 
-                                template, peakShape=fitInfo['peakShape'])
+                # segment rangeinto two...
+                xList = []
+                yList = []
+                bnds = expInfo['blockBounds']
+                for leftBnd in range(len(bnds) - 1): # indexes
+                    xList.append(subx[np.where((subx >= bnds[leftBnd]) & (subx < bnds[leftBnd + 1]))])
+                    yList.append(suby[np.where((subx >= bnds[leftBnd]) & (subx < bnds[leftBnd + 1]))])
+                
+                for xbit, ybit, i in zip(xList, yList, range(len(xList))):
+                    # Restrict range and fit peaks
+                    curveParams, derivedParams = fit_peak(xbit, ybit,
+                                        peakShape=fitInfo['peakShape'],
+                                        fitMode=fitInfo['fitMode'],
+                                        numCurves=fitInfo['numCurves'])
+                    print(f'    ----Saving data for block between {np.min(xbit):.2f} - {np.max(xbit):.2f}')
+                    # output/saving of blocks
+                    save_dict(curveParams, cfg['exportPath'], template + f'_block{i}_curve')
+                    save_dict(derivedParams, cfg['exportPath'], template + f'_block{i}_derived')
+                    save_curve_fit(xbit, ybit, curveParams, cfg['exportPath'], 
+                                    template + f'_block{i}', peakShape=fitInfo['peakShape'])
+                
+                # Save overall images
+                print(f'    ----Saving whole scan data')
+                save_qchi(mg, ims, mask, cfg['exportPath'], template + f'_block{i}')
+                save_Itth(mg, ims, mask, cfg['exportPath'], template +  f'_block{i}')
         newLen = len(processed)
+        
         if currLen < newLen:
             # Gather and summarize
             print('summarizing information...')
@@ -108,5 +123,3 @@ def alanWorkflow(configPath):
             summarize_params(cfg['exportPath'], '*_curve_params.csv', '_curve_summary.csv')
 
         currLen = newLen
-
-        break
