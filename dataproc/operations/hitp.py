@@ -33,8 +33,20 @@ from .utils import folder_select
 
 
 def load_image(path: Path=Path('')) -> np.ndarray:
-    """Open image based on file suffix.  
+    """load_image loads images based on file extension
+        
+    :param path: path to single image file, defaults to Path('')
+    :type path: Path, optional
+    :return: image array data
+    :rtype: np.ndarray
     """
+    try:
+        path = Path(path)
+        # check if path exists (path.exists())
+    except:
+        print('could not verify path')
+        im = np.array([0])
+
     if path.suffix in ['.tif', '.tiff']:
         # open tiff image
         im = fabio.open(path)
@@ -52,15 +64,45 @@ def load_image(path: Path=Path('')) -> np.ndarray:
         
     return imArray
 
+def parse_calib(filename):
+    """parse_calib Parses calibration from wxDiff
+    
+    :param filename: [description]
+    :type filename: [type]
+    :return: [description]
+    :rtype: [type]
+    """
+    file=open(filename,'r')
+    data = []
+    with file as inputfile:
+        for line in inputfile:
+            data.append(line.strip().split('\n'))
+    bcenter_x = float(data[6][0][10:])
+    bcenter_y = float(data[7][0][10:])
+    detector_dist = float(data[8][0][12:])
+    detect_tilt_alpha = float(data[9][0][18:])
+    detect_tilt_delta = float(data[10][0][18:])
+    wavelength = float(data[11][0][11:])
+    return detector_dist, detect_tilt_alpha, detect_tilt_delta, wavelength, bcenter_x, bcenter_y
+
+
 center = (183, 245)
 det = pyFAI.detectors.Pilatus100k()
 sampleExpInfo = {'dist': 0.55, # meters
                 'poni1': center[0] * det.pixel1,
                 'poni2': center[1] * det.pixel2,
                 'detector': det,
-                'wavelength': 7.2932E-11,
+                'wavelength': 7.2932E-11, # meters?..
                 'orientation': 'horizontal'
                 }
+
+def create_single() -> ():
+    """create_single [summary]
+    
+    Creates single scan, look to see if normal azimuthal integrator 
+    operates similarly to multigeometry for save_qchi, save_Itth
+    """
+
 
 def create_scan(imgList: list, specPath: Path, 
                 expInfo: dict=sampleExpInfo) -> (MultiGeometry, list):
@@ -244,7 +286,8 @@ def restrict_range(x, y, xRange: list=None,
 
     """
 
-def bkgd_sub(x, y, downsample_int: int=50) -> (np.ndarray, np.ndarray):
+def bkgd_sub(x, y, downsample_int: int=50, 
+            print_plot: bool=False) -> (np.ndarray, np.ndarray):
     """Subtract background with modified chebyshev polynomial
     """
     def downsamp(size, x, y):
@@ -304,10 +347,9 @@ def bkgd_sub(x, y, downsample_int: int=50) -> (np.ndarray, np.ndarray):
     downX = np.append(np.append(x[0:30:5], downX), x[-30:-1:5])
     downY = np.append(np.append(y[0:30:5], downY), y[-30:-1:5])
 
-
     x0 = [1,1,1,1,1]
     #appears to converge quickly, take 10 iterations rather than 100
-    result = basinhopping(objFunc, x0, niter=10) 
+    result = basinhopping(objFunc, x0, niter=100) 
     bkgd_sparse = chebFunc(x, result.x)
     # create function that interpolates sparse bkgd
     f = interp1d(x, bkgd_sparse, kind='cubic', bounds_error=False)
@@ -325,8 +367,13 @@ def bkgd_sub(x, y, downsample_int: int=50) -> (np.ndarray, np.ndarray):
     if np.min(subDataY) < 0:
         finalDataY = finalDataY + np.absolute(np.min(finalDataY))
 
-    return finalDataX, finalDataY
+    if print_plot:
+        return finalDataX, finalDataY, bkgd1
+    else: 
+        return finalDataX, finalDataY
 
+def bkgd_sub_GP(x, y, downsample_int: int=50): 
+    pass
 
 defaultFitOpts = {'peakShape': 'voigt', # ('voigt', 'gaussian')
                     'fitMode': 'fixed',
@@ -503,3 +550,162 @@ def fit_peak(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),
         derivedParams[f'curve {j}']['x0'] = curveParams[f'curve {j}']['x0']
     
     return curveParams, derivedParams
+
+def bayesian_block_finder(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),):
+    """bayesian_block_finder performs Bayesian Block analysis on x, y data.
+
+    see Jeffrey Scargle's papers at doi: 10.1088/0004-637X/764/2/167
+
+    :param x: array of x-coordinates
+    :type x: numpy.ndarray
+    :param y: array of y-values with same length as x
+    :type y: numpy.ndarray
+    """
+    data_mode = 3
+    numPts = len(x)
+    if len(x) != len(y):
+        raise ValueError('x and y are not of equal length')
+
+    tt = np.arange(numPts)
+    nnVec = []
+
+    sigmaGuess = np.std(y[ y <= np.median(y)])
+    cellData = sigmaGuess * np.ones(len(x))
+
+    ncp_prior = 0.5
+
+
+    ## To implement: trimming/choosing of where to start/stop
+    ## To implement: timing functions
+
+    cp = []
+    cntVec = []
+
+    iterCnt = 0
+    iterMax = 10
+
+    while iterCnt <= iterMax:
+        best = []
+        last = []
+
+        for r in range(numPts):
+            # y-data background subtracted
+            sumX1 = np.cumsum(y[r::-1]) 
+            sumX0 = np.cumsum(cellData[r::-1]) # sigma guess
+            fitVec = (np.power(sumX1[r::-1],2) / (4 * sumX0[r::-1]))
+
+            paddedBest = np.insert(best,0,0)
+            best.append(np.amax( paddedBest + fitVec - ncp_prior ))
+            last.append(np.argmax( paddedBest + fitVec - ncp_prior ) )
+
+            # print('Best = {0},  Last = {1}'.format(best[r], last[r]))
+
+        # Find change points by peeling off last block iteratively
+        index = last[numPts-1]
+
+        while index > 0:
+            cp = np.concatenate( ([index], cp) )
+            index = last[index-1]
+
+        # Iterate if desired, to implement later
+        iterCnt += 1
+        break
+
+
+    numCP = len(cp)
+    numBlocks = numCP + 1
+
+    rateVec  = np.zeros(numBlocks)
+    numVec   = np.zeros(numBlocks)
+
+    cptUse = np.insert(cp, 0, 0)
+
+    #print('cptUse start: {0}, end: {1}, len: {2}'.format(cptUse[0],
+                                                    #cptUse[-1], len(cptUse)))
+    #print('lenCP: {0}'.format(len(cp)))
+    
+    # what does this stuff do I don't know...
+    print('numBlocks: {0}, dataPts/Block: {1}'.format(numBlocks, len(x)/numBlocks))
+    for idBlock in range(numBlocks):
+        # set ii1, ii2 as indexes.  Fix edge case at end of blocks
+        ii1 = int(cptUse[idBlock])
+        if idBlock < (numBlocks - 1):
+            ii2 = int(cptUse[idBlock + 1] - 1)
+        else:
+            ii2 = int(numPts)
+                
+        subset = y[ii1:ii2]
+        weight = cellData[ii1:ii2]
+        if ii1 == ii2:
+            subset = y[ii1]
+            weight = cellData[ii1]
+        rateVec[idBlock] = np.dot(weight, subset) / np.sum(weight)
+
+        if np.sum(weight) == 0:
+            raise ValueError('error, divide by zero at index: {0}'.format(idBlock))
+            print('-------ii1: {0}, ii2: {1}'.format(ii1, ii2))
+            
+
+    # Simple hill climbing for merging blocks
+    cpUse = np.concatenate(([1], cp, [len(y)]))
+    cp = cpUse
+
+    numCP = len(cpUse) - 1
+    idLeftVec = np.zeros(numCP)
+    idRightVec = np.zeros(numCP)
+
+    for i in range(numCP):
+        idLeftVec[i]  = cpUse[i]
+        idRightVec[i] = cpUse[i+1]
+
+    # Find maxima defining watersheds, scan for 
+    # highest neighbor of each block
+
+    idMax = np.zeros(numBlocks)
+    idMax = np.zeros(numBlocks)
+    for j in range(numBlocks):
+        jL = (j-1)*(j>0) + 0*(j<=0) # prevent out of bounds
+        jR = (j+1)*(j<(numBlocks-1)) + (numBlocks-1)*(j>=(numBlocks-1))
+
+        rateL = rateVec[jL]
+        rateC = rateVec[j]
+        rateR = rateVec[jR]
+        rateList = [rateL, rateC, rateR]
+
+        jMax = np.argmax(rateList) #get direction [0, 1, 2]
+        idMax[j] = j + jMax - 1 # convert direction to delta
+
+    idMax[ idMax > numBlocks] = numBlocks
+    idMax[ idMax < 0] = 0
+
+    # Implement hill climbing (HOP algorithm)
+    
+    hopIndex = np.array(range(numBlocks)) # init: all blocks point to self
+    hopIndex = hopIndex.astype(int)  # cast all as int
+    ctr = 0
+    # point each block to its max block
+    while ctr <= len(x):
+        newIndex = idMax[hopIndex]  # Point each to highest neighbor
+
+        if np.array_equal(newIndex, hopIndex):
+            break
+        else:
+            hopIndex = newIndex.astype(int)
+            
+        ctr += 1
+        if ctr == len(x):
+            print('Hill climbing did not converge...?')
+
+    idMax = np.unique(hopIndex)
+    numMax = len(idMax)
+
+    # Convert to simple list of block boundaries
+    boundaries = [0]
+    for k in range(numMax):
+        currVec = np.where(hopIndex == idMax[k])[0]
+
+        rightDatum = idRightVec[currVec[-1]] - 1 # stupid leftover matlab index
+        boundaries.append(rightDatum)
+    
+    return np.array(boundaries)
+
