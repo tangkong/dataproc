@@ -9,8 +9,6 @@ grab single file
 
 """
 from pathlib import Path
-import matplotlib.pyplot as plt
-
 
 def single_select(path: str='') -> Path: 
     # Check existence?

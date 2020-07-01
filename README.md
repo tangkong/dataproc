@@ -7,8 +7,7 @@ Clone the repo
 
 `$ git clone https://github.com/tangkong/dataproc.git`
 
-Install package
-Navigate to the directory you cloned the repo into and run: 
+Install package from the directory you cloned the repo into:
 
 `$ pip install . `
 
