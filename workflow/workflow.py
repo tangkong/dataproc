@@ -23,6 +23,16 @@ with open(configPath) as jp:
 cfg['fitInfo']['blockBounds'] = boundaries
 
 
+
+
+def fit_curves(y, **kwargs):
+    boundaries = hitp.bayesian_block_finder(x, gf(y, 1.5))
+    #boundaries = [b for b in boundaries if b >= boundaries_min and b <= boundaries_max]
+    print(boundaries)
+    cfg['fitInfo']['blockBounds'] = boundaries
+    suby = workflow(y, boundaries, **kwargs)
+    return suby
+
 def workflow(y, boundaries, downsample_int = 10, noise_estimate = None, **kwargs):
     """
     kwargs are passed to hitp.fit_peak
@@ -77,13 +87,4 @@ def workflow(y, boundaries, downsample_int = 10, noise_estimate = None, **kwargs
         hitp.save_dict(derivedParams, cfg['exportPath'], template + f'_block{i}_derived')
         hitp.save_curve_fit(xbit, ybit, curveParams, cfg['exportPath'], 
                         template + f'_block{i}', peakShape=fitInfo['peakShape'])
-    return suby
-
-
-def fit_curves(y, **kwargs):
-    boundaries = hitp.bayesian_block_finder(x, gf(y, 1.5))
-    #boundaries = [b for b in boundaries if b >= boundaries_min and b <= boundaries_max]
-    print(boundaries)
-    cfg['fitInfo']['blockBounds'] = boundaries
-    suby = workflow(y, boundaries, **kwargs)
     return suby

@@ -290,6 +290,7 @@ def bkgd_sub(x, y, downsample_int: int=50,
             print_plot: bool=False) -> (np.ndarray, np.ndarray):
     """Subtract background with modified chebyshev polynomial
     """
+    print("downsample:", downsample_int)
     def downsamp(size, x, y):
         """Downsample data based on size parameter.  Return downsampled data
         """
@@ -385,6 +386,7 @@ def fit_peak(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),
                 fitMode: str=defaultFitOpts['fitMode'],
                 numCurves: int=defaultFitOpts['numCurves'],
                 noise_estimate: np.ndarray = None,
+                background: np.ndarray = None,
                 stdratio_threshold: float = 2
             ) -> (dict, list):
     """Fit peak segment with specified peak shape and method
