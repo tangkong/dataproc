@@ -2,6 +2,7 @@
 Packaging setup for dataproc
 """
 from setuptools import setup
+from setuptools import find_packages
 import dataproc as package
 
 setup(
@@ -17,6 +18,8 @@ setup(
     name             = package.__project__,
     #platforms        = package.__platforms__,
     #packages         = find_packages(exclude=package.__exclude_project_dirs__),
+    packages = find_packages('.'),
+    package_dir={'dataproc': 'dataproc'},
     #url              = package.__url__,
     #version          = versioneer.get_version(),
     #cmdclass         = versioneer.get_cmdclass(),
@@ -24,3 +27,4 @@ setup(
     python_requires  = package.__python_version_required__,
 
  )
+

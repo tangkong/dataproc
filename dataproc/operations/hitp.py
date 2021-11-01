@@ -290,6 +290,7 @@ def bkgd_sub(x, y, downsample_int: int=50,
             print_plot: bool=False) -> (np.ndarray, np.ndarray):
     """Subtract background with modified chebyshev polynomial
     """
+    print("downsample:", downsample_int)
     def downsamp(size, x, y):
         """Downsample data based on size parameter.  Return downsampled data
         """
@@ -383,14 +384,16 @@ defaultFitOpts = {'peakShape': 'voigt', # ('voigt', 'gaussian')
 def fit_peak(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),
                 peakShape: str=defaultFitOpts['peakShape'], 
                 fitMode: str=defaultFitOpts['fitMode'],
-                numCurves: int=defaultFitOpts['numCurves']
+                numCurves: int=defaultFitOpts['numCurves'],
+                noise_estimate: np.ndarray = None,
+                background: np.ndarray = None,
+                stdratio_threshold: float = 2
             ) -> (dict, list):
     """Fit peak segment with specified peak shape and method
     return dictionary with peak information
     finalParams: all curve info
     FWHM: calculated FWHM's for each curve
     """
-
     xRange = np.ptp(x)
     maxInd = np.where(y == np.max(y))[0][0]
 
@@ -436,7 +439,21 @@ def fit_peak(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),
     # To-do: figure out better way to zero shift
     errorCurr = np.mean(np.absolute(resid) / (y+1))
     print('Peak at {0}, start iteration with error = {1}'.format(x[maxInd], errorCurr))
-    while curveCnt < numCurves: # and errorCurr > 0.001: 
+    def keep_fitting(curveCnt):
+        # fit more peaks as long as the residual RMSE is below-threshold
+        # (or up to numCurves, if no noise estimate is given).
+        if curveCnt >= numCurves:
+            return False
+        if curveCnt == 0:
+            return True
+        if noise_estimate is not None:
+            ratio = np.sqrt(((resid**2).mean() / (noise_estimate**2).mean() ))
+            print(ratio)
+            if ratio < stdratio_threshold:
+                return  False
+        return True
+    #while curveCnt < numCurves: # and errorCurr > 0.001: 
+    while keep_fitting(curveCnt): # and errorCurr > 0.001: 
         # place peak at min residual
         xPosGuess = x[np.argmin(resid)]
         guessTemp[0] = xPosGuess
