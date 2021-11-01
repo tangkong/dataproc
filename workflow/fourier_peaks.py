@@ -133,7 +133,7 @@ y = patterns[0]
     
 boundaries = hitp.bayesian_block_finder(x, y)
 
-from xrdc import source_separation as sep
+from dataproc.operations import source_separation as sep
 
 # cutoff gives the standard deviation of the low-pass Gaussian kernel standard deviation,
 #     as a fraction of the number of samples
