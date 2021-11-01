@@ -1,25 +1,30 @@
-import sys
-import os
-import pip
+"""
+Packaging setup for dataproc
+"""
+from setuptools import setup
+from setuptools import find_packages
+import dataproc as package
 
-from setuptools import setup, find_packages
-
-#pip.main(['install',  'pyzmq', '--install-option=--zmq=bundled'])
-
-setup(name='dataproc',
-    version='1.0',
+setup(
+    author           = package.__author__,
+    version          = package.__version__,
+    author_email     = package.__author_email__,
+    classifiers      = package.__classifiers__,
+    description      = package.__description__,
+    #entry_points     = __entry_points__,
+    license          = package.__license__,
+    long_description = package.__long_description__,
+    install_requires = package.__install_requires__,
+    name             = package.__project__,
+    #platforms        = package.__platforms__,
+    #packages         = find_packages(exclude=package.__exclude_project_dirs__),
     packages = find_packages('.'),
     package_dir={'dataproc': 'dataproc'},
-    #package_data={'xrdc': ['inputs/*']},
-#    scripts = [
-#        'scripts/mecana.py', 'scripts/logbooksync.py'
-#    ],
-    #install_requires = ['gpflow', 'bayesian-optimization'],
-    zip_safe = False,
-    )
+    #url              = package.__url__,
+    #version          = versioneer.get_version(),
+    #cmdclass         = versioneer.get_cmdclass(),
+    zip_safe         = package.__zip_safe__,
+    python_requires  = package.__python_version_required__,
 
-#pip.main(['install', 'git+https://github.com/uqfoundation/pathos.git'])
-#pip.main(['install', 'pymongo'])
-#pip.main(['install', 'pytest'])
+ )
 
-#print  "Packages are: ", find_packages('.')
