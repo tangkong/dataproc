@@ -6,9 +6,10 @@ Includes:
 """
 import os
 from pathlib import Path
+from typing import Tuple
+
 import numpy as np
 from numpy.polynomial.chebyshev import chebval
-
 import scipy
 import scipy.io
 from scipy.optimize import curve_fit, basinhopping
@@ -23,6 +24,7 @@ import re
 import matplotlib.pyplot as plt
 
 import pyFAI
+import pyFAI.detectors as dets
 from pyFAI.multi_geometry import MultiGeometry
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator as AzInt
 
@@ -30,7 +32,15 @@ from .peakShapes import voigtFn, gaussFn
 from .utils import folder_select
 
 # To-Do: make type alisases (list[Path's])
-
+center = (183, 245)
+det = pyFAI.detectors.Pilatus100k()
+sampleExpInfo = {'dist': 0.55, # meters
+                'poni1': center[0] * det.pixel1,
+                'poni2': center[1] * det.pixel2,
+                'detector': det,
+                'wavelength': 7.2932E-11, # meters?..
+                'orientation': 'horizontal'
+                }
 
 def load_image(path: Path=Path('')) -> np.ndarray:
     """load_image loads images based on file extension
@@ -85,27 +95,77 @@ def parse_calib(filename):
     wavelength = float(data[11][0][11:])
     return detector_dist, detect_tilt_alpha, detect_tilt_delta, wavelength, bcenter_x, bcenter_y
 
+def db_to_pattern_array(hdr, cfg: dict, img_key='pilatus1M_image'):
+    # returns dataframe with keys like: [s_stage.px, s_stage.px, pilatus1M_image]
+    df = hdr.table(fill=True)
 
-center = (183, 245)
-det = pyFAI.detectors.Pilatus100k()
-sampleExpInfo = {'dist': 0.55, # meters
-                'poni1': center[0] * det.pixel1,
-                'poni2': center[1] * det.pixel2,
-                'detector': det,
-                'wavelength': 7.2932E-11, # meters?..
-                'orientation': 'horizontal'
-                }
+    # iterate through images, integrate, generate 1D patterns, add to df
+    # Don't modify something you're iterating over, in general.  Apply instead
+    det = getattr(dets, cfg['expInfo']['detector'])()
+    def _integrate(row, cfg=cfg, det=det):
+        img = row[cfg['dbInfo']['imgkey']][0]
+        einfo = cfg['expInfo']
+        p = pyFAI.AzimuthalIntegrator(wavelength=einfo['wavelength'])
+        p.setFit2D(einfo['dist'], einfo['center1'], einfo['center2'],  
+                    einfo['tilt'], einfo['rot'], det.pixel1, det.pixel2)
+        return p.integrate1d(img, 1000)
 
-def create_single() -> ():
+    df['qI_data'] = df.apply(_integrate, axis=1)
+    
+    # format into [x, y, len(pattern)] array.  empty spots are 0
+    # assume uniform spacing
+    pattern_length = len(df['qI_data'][1])
+    xlocs = df['s_stage_px'].unique() #values may not be round, use actual locs
+    xlocs.sort()
+    ylocs = df['s_stage_py'].unique()
+    ylocs.sort()
+    patterns = np.zeros((len(xlocs), len(ylocs), pattern_length))
+
+    for i, xl in enumerate(xlocs): # indices
+        for j, yl in enumerate(ylocs):
+            sub_df = df[(df['s_stage_px']==xl) & (df['s_stage_py']==yl)]
+            if len(sub_df) > 0:
+                patterns[i, j, :] = sub_df['qI_data'].item() # TODO verify
+
+    return patterns
+
+def files_to_pattern_array(search_string: str, csv_path: Path, 
+                            img_path: Path, export_path: Path, 
+                            exp_cfg: dict=sampleExpInfo):
+    try:
+        df = pd.read_csv(csv_path.glob(search_string))
+    except:
+        print('string does not match any csvs in {csv_path}')
+        return
+    
+    img_list = list(img_path.glob(search_string))
+    # coalate image and position data
+    for ip in img_list:
+        im = load_image(ip)
+        ai  = create_single(im, exp_cfg)
+        q, I = ai.integrate1d(im, npts=1000) # same config works for each image
+        
+        
+    
+    patterns = np.zeros((5,5,5))
+    return patterns
+
+def create_single(expInfo: dict=sampleExpInfo) -> np.ndarray:
     """create_single [summary]
     
     Creates single scan, look to see if normal azimuthal integrator 
     operates similarly to multigeometry for save_qchi, save_Itth
     """
+    det = getattr(dets, expInfo['detector'])
 
+    p = pyFAI.AzimuthalIntegrator(wavelength=expInfo['wavelength'], det=det)
+    p.setFit2D(expInfo['dist'], expInfo['center1'], expInfo['center2'],  
+                    expInfo['tilt'], expInfo['rot'], det.pixel1, det.pixel2)
+
+    return p
 
 def create_scan(imgList: list, specPath: Path, 
-                expInfo: dict=sampleExpInfo) -> (MultiGeometry, list):
+                expInfo: dict=sampleExpInfo) -> Tuple[MultiGeometry, list]:
     """Create multigometry object containing images and coordinates 
     """
     spec = pd.read_csv(specPath)
@@ -281,13 +341,13 @@ def integrate_1d_mg(mg: MultiGeometry, imgs: list,
     return np.array(int1d)
 
 def restrict_range(x, y, xRange: list=None, 
-                    yRange: list=None) -> (np.ndarray, np.ndarray):
+                    yRange: list=None) -> Tuple[np.ndarray, np.ndarray]:
     """Return the subset of x, y that falls within xRange and yRange
 
     """
 
 def bkgd_sub(x, y, downsample_int: int=50, 
-            print_plot: bool=False) -> (np.ndarray, np.ndarray):
+            print_plot: bool=False) -> Tuple[np.ndarray, np.ndarray]:
     """Subtract background with modified chebyshev polynomial
     """
     print("downsample:", downsample_int)
@@ -388,7 +448,7 @@ def fit_peak(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),
                 noise_estimate: np.ndarray = None,
                 background: np.ndarray = None,
                 stdratio_threshold: float = 2
-            ) -> (dict, list):
+            ) -> Tuple[dict, list]:
     """Fit peak segment with specified peak shape and method
     return dictionary with peak information
     finalParams: all curve info
