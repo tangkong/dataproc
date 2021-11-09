@@ -74,7 +74,7 @@ def load_image(path: Path=Path('')) -> np.ndarray:
         
     return imArray
 
-def parse_calib(filename):
+def parse_wx_calib(filename):
     """parse_calib Parses calibration from wxDiff
     
     :param filename: [description]
@@ -145,8 +145,6 @@ def files_to_pattern_array(search_string: str, csv_path: Path,
         ai  = create_single(im, exp_cfg)
         q, I = ai.integrate1d(im, npts=1000) # same config works for each image
         
-        
-    
     patterns = np.zeros((5,5,5))
     return patterns
 

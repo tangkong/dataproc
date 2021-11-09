@@ -1,0 +1,25 @@
+{
+    "specPath": "P:\\bl2-1\\Feb2020\\20200204_Pd5_exsitu\\",
+    "imagePath": "P:\\bl2-1\\Feb2020\\20200204_Pd5_exsitu\\images\\",
+    "exportPath": "P:\\bl2-1\\Feb2020\\20200204_Pd5_exsitu\\exporttest\\", 
+    "expInfo": {"dist": 0.714728,
+                "center1": 1022,
+                "center2": 2343,
+                "tilt": 0,
+                "rot": 0,
+                "detector": "Mar345", 
+                "wavelength": 7.29319E-11,
+                "orientation": "vertical"
+               },
+    "fitInfo": {"peakShape": "Voigt",
+                "fitMode": "fixed",
+                "numCurves": 3
+               },
+    "dbInfo": { "xkey":"s_stage_px",
+                "ykey":"s_stage_py",
+                "imgkey":"pilatus1M"
+              },
+    "filesInfo": {"csv_path":"C:\\Users\\roberttk\\Desktop\\SLAC_RA\\DATA\\Example HiTp",
+                  "img_path":"C:\\Users\\roberttk\\Desktop\\SLAC_RA\\DATA\\Example HiTp\\imgs",
+                  "search_string":"*3094*"}
+}
