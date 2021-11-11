@@ -75,8 +75,8 @@ def load_image(path: Path=Path('')) -> np.ndarray:
     return imArray
 
 def parse_wx_calib(filename):
-    """parse_calib Parses calibration from wxDiff
-    
+    """parse_calib Parses calibration from wxDiff.  Return in poni format for pyFAI
+    DEPRICATED, doesn't extend to multi-image scans like pyFAI geometry specs
     :param filename: [description]
     :type filename: [type]
     :return: [description]
@@ -148,19 +148,22 @@ def files_to_pattern_array(search_string: str, csv_path: Path,
     patterns = np.zeros((5,5,5))
     return patterns
 
-def create_single(expInfo: dict=sampleExpInfo) -> np.ndarray:
+def create_single(ponifile: Path=None, expInfo: dict=sampleExpInfo) -> pyFAI.AzimuthalIntegrator:
     """create_single [summary]
     
     Creates single scan, look to see if normal azimuthal integrator 
     operates similarly to multigeometry for save_qchi, save_Itth
     """
-    det = getattr(dets, expInfo['detector'])
+    if ponifile:
+        return pyFAI.load(ponifile) # returns ai object
 
-    p = pyFAI.AzimuthalIntegrator(wavelength=expInfo['wavelength'], det=det)
-    p.setFit2D(expInfo['dist'], expInfo['center1'], expInfo['center2'],  
-                    expInfo['tilt'], expInfo['rot'], det.pixel1, det.pixel2)
+    else: # load parameters individually
+        det = pyFAI.detector_factory(expInfo['detector'])
 
-    return p
+        intInfo = {x: expInfo[x] for x in ['poni1', 'poni2', 'dist', 'rot1',
+                                           'rot2', 'rot3', 'wavelength']}
+        p = pyFAI.AzimuthalIntegrator(**intInfo, detector=det)
+        return p
 
 def create_scan(imgList: list, specPath: Path, 
                 expInfo: dict=sampleExpInfo) -> Tuple[MultiGeometry, list]:
@@ -182,7 +185,7 @@ def create_scan(imgList: list, specPath: Path,
         scanNo = int(re.search(r'(\d{4})(\.raw)', str(im)).group(1))
 
         intInfo = {x: expInfo[x] for x in ['poni1', 'poni2', 'dist',
-                                            'detector', 'wavelength']}
+                                            'wavelength']}
 
         ai = AzInt(**intInfo, 
                     rot2=np.pi/180*float(spec['TwoTheta'][scanNo]),
