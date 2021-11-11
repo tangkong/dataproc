@@ -96,13 +96,22 @@ sampleExpInfo = {'dist': 0.55, # meters
                 'orientation': 'horizontal'
                 }
 
-def create_single() -> ():
+def create_single(ponifile: Path=None, expInfo: dict=sampleExpInfo) -> pyFAI.AzimuthalIntegrator:
     """create_single [summary]
     
     Creates single scan, look to see if normal azimuthal integrator 
     operates similarly to multigeometry for save_qchi, save_Itth
     """
+    if ponifile:
+        return pyFAI.load(ponifile) # returns ai object
 
+    else: # load parameters individually
+        det = pyFAI.detector_factory(expInfo['detector'])
+
+        intInfo = {x: expInfo[x] for x in ['poni1', 'poni2', 'dist', 'rot1',
+                                           'rot2', 'rot3', 'wavelength']}
+        p = pyFAI.AzimuthalIntegrator(**intInfo, detector=det)
+        return p
 
 def create_scan(imgList: list, specPath: Path, 
                 expInfo: dict=sampleExpInfo) -> (MultiGeometry, list):

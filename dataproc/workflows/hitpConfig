@@ -1,0 +1,19 @@
+{
+    "imagePath": "P:\\bl2-1\\Feb2020\\20200204_Pd5_exsitu\\images\\",
+    "exportPath": "P:\\bl2-1\\Feb2020\\20200204_Pd5_exsitu\\exporttest\\", 
+    "searchString": "2095",
+    "expInfo": {"dist": 0.2466,
+                "poni1": 0.06683,
+                "poni2": 0.0851,
+                "rot1":0.008086,
+                "rot2":0.5419,
+                "rot3":0.2763068,
+                "detector": "pilatus1M",
+                "wavelength": 0.7999
+               },
+    "fitInfo": {"peakShape": "Voigt",
+                "fitMode": "fixed",
+                "numCurves": 3,
+                "blockBounds": [18, 21, 23.5]
+               }
+}
