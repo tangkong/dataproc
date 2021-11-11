@@ -2,14 +2,15 @@
     "specPath": "P:\\bl2-1\\Feb2020\\20200204_Pd5_exsitu\\",
     "imagePath": "P:\\bl2-1\\Feb2020\\20200204_Pd5_exsitu\\images\\",
     "exportPath": "P:\\bl2-1\\Feb2020\\20200204_Pd5_exsitu\\exporttest\\", 
-    "expInfo": {"dist": 0.714728,
-                "center1": 1022,
-                "center2": 2343,
-                "tilt": 0,
-                "rot": 0,
-                "detector": "Mar345", 
-                "wavelength": 7.29319E-11,
-                "orientation": "vertical"
+    "expInfo": {"dist": 0.2466,
+                "poni1": 0.0668333,
+                "poni2": 0.085,
+                "rot1": 0.008086,
+                "rot2": 0.541958,
+                "rot3": 0.0,
+                "wavelength": 7.9989E-11,
+                "orientation": "vertical",
+                "detector": "Pilatus1M"
                },
     "fitInfo": {"peakShape": "Voigt",
                 "fitMode": "fixed",
@@ -20,6 +21,6 @@
                 "imgkey":"pilatus1M"
               },
     "filesInfo": {"csv_path":"C:\\Users\\roberttk\\Desktop\\SLAC_RA\\DATA\\Example HiTp",
-                  "img_path":"C:\\Users\\roberttk\\Desktop\\SLAC_RA\\DATA\\Example HiTp\\imgs",
-                  "search_string":"*3094*"}
+                  "img_path":"C:\\Users\\roberttk\\Desktop\\SLAC_RA\\DATA\\Example HiTp\\scan3895",
+                  "search_string":"*3895*"}
 }
