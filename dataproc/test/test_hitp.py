@@ -1,5 +1,5 @@
 import unittest
 
-class BBATest(unittest.TestCase):
+class HiTp_funcTest(unittest.TestCase):
     def test_output(self):
         pass
