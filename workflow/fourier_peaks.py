@@ -23,16 +23,15 @@ import numpy as np
 
 from dataproc.operations.utils import single_select, folder_select
 from scipy.ndimage.filters import gaussian_filter as gf
-
+import pyFAI
 template = ''
-configPath = "workflows/alanConfig"
+configPath = "/home/b_spec/roberttk/dataproc/dataproc/workflows/hitpConfig"
 
 # Configuration setup
 # Grab configs
 print(configPath)
 with open(configPath) as jp:
     cfg = json.load(jp)
-cfg['fitInfo']['blockBounds'] = boundaries
 
 
 def workflow(y, boundaries, downsample_int = 10, noise_estimate = None, background = None,

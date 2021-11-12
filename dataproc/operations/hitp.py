@@ -110,7 +110,7 @@ def create_single(ponifile: Path=None, expInfo: dict=sampleExpInfo) -> pyFAI.Azi
 
         intInfo = {x: expInfo[x] for x in ['poni1', 'poni2', 'dist', 'rot1',
                                            'rot2', 'rot3', 'wavelength']}
-        p = pyFAI.AzimuthalIntegrator(**intInfo, detector=det)
+        p = pyFAI.azimuthalIntegrator.AzimuthalIntegrator(**intInfo, detector=det)
         return p
 
 def create_scan(imgList: list, specPath: Path, 
@@ -168,7 +168,7 @@ def save_qchi(mg: MultiGeometry, imgs: list, mask: np.ndarray,
     _, ax = plt.subplots(1,1)
 
     # Integrate image
-    res2d = mg.integrate2d(imgs, 1000,360, lst_mask=mask)
+    res2d = mg.integrate2d(imgs, 1000,360, mask=mask)
     # gives 3 arrays.  First is intensities with shape (arg2, arg1)  
     # Second is 2th range, third is azimuthal range
 
@@ -176,11 +176,11 @@ def save_qchi(mg: MultiGeometry, imgs: list, mask: np.ndarray,
     plt.rc('text')
     plt.rc('font')
 
-    ax.set_xlim(0,65)
+    #ax.set_xlim(0,65)
     ax.set_xlabel('Radial Angle (2theta)')
     ax.set_ylabel('Azumuthal Angle (chi)')
 
-    plt.savefig(spath + template + '_figures.png')
+    plt.savefig(spath + template + '_2D.png')
 
     scipy.io.savemat(spath + template + '_Qchi.mat', 
                      {'Q':res2d[1], 'chi':res2d[2], 'cake':res2d[0]})
@@ -192,10 +192,11 @@ def save_Itth(mg: MultiGeometry, imgs: list, mask: np.ndarray,
     
     _, ax = plt.subplots(1,1)
     
-    int1d = mg.integrate1d(imgs, 10000, lst_mask=mask)
+    int1d = mg.integrate1d(imgs, 10000, mask=mask, unit='q_A^-1')
     ax.plot(int1d[0], int1d[1])
     ax.set_ylabel('Intensity')
-    ax.set_xlim(0,65)
+    plt.savefig(spath+template+'_1D.png')
+    #ax.set_xlim(0,65)
 
     int1List = list(int1d)
     int1df = pd.DataFrame(data=int1List[1], index=int1List[0])
@@ -416,9 +417,11 @@ def fit_peak(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),
         # [x0, y0, I, alpha, gamma]
         boundLowTemp = [x[0], -np.max(y)/4, 0., 0., 0.]
         boundUppTemp = [x[-1], np.inf, np.inf, xRange/4, xRange/4]
+        #boundUppTemp = [x[-1], 1000*np.max(y), 1000*np.max(y), xRange/4, xRange/4]
 
         boundLowerPart = [x[0]-0.05*xRange, -np.max(y)/4, 0, 0, 0]
         boundUpperPart = [x[-1]+0.05*xRange, np.inf, np.inf, 
+        #boundUpperPart = [x[-1]+0.05*xRange, 1000*np.max(y), 1000*np.max(y), 
                             xRange/4, xRange/4]
     elif peakShape == 'Gaussian':
         func = gaussFn     
@@ -651,7 +654,7 @@ def bayesian_block_finder(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),)
     #print('lenCP: {0}'.format(len(cp)))
     
     # what does this stuff do I don't know...
-    print('numBlocks: {0}, dataPts/Block: {1}'.format(numBlocks, len(x)/numBlocks))
+    #print('numBlocks: {0}, dataPts/Block: {1}'.format(numBlocks, len(x)/numBlocks))
     for idBlock in range(numBlocks):
         # set ii1, ii2 as indexes.  Fix edge case at end of blocks
         ii1 = int(cptUse[idBlock])
@@ -732,6 +735,6 @@ def bayesian_block_finder(x: np.ndarray=np.ones(5,), y: np.ndarray=np.ones(5,),)
 
         rightDatum = idRightVec[currVec[-1]] - 1 # stupid leftover matlab index
         boundaries.append(rightDatum)
-    
+    print(len(boundaries)) 
     return np.array(boundaries)
 
