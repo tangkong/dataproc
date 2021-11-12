@@ -184,6 +184,7 @@ def save_qchi(mg: MultiGeometry, imgs: list, mask: np.ndarray,
 
     scipy.io.savemat(spath + template + '_Qchi.mat', 
                      {'Q':res2d[1], 'chi':res2d[2], 'cake':res2d[0]})
+    plt.close()
 
 def save_Itth(mg: MultiGeometry, imgs: list, mask: np.ndarray,
                 spath: Path, template: str=''):
@@ -208,9 +209,8 @@ def save_dict(data: dict, spath: Path, template: str=''):
     """Save data to spath+template, append if already exists
     """
     os.makedirs(spath, exist_ok=True)
-
-    if os.path.exists(spath+template):
-        df = pd.read_csv(spath+template+'_params.csv')
+    if os.path.exists(spath+template+'_params.csv'):
+        df = pd.read_csv(spath+template+'_params.csv', index_col=0)
         dfnew = pd.DataFrame(data)
         df = df.append(dfnew)
         df.to_csv(spath+template+'_params.csv')
@@ -246,6 +246,37 @@ def summarize_params(csv_path: Path,
             result = result.merge(melt, on=('param', 'variable'))
 
     result.to_csv(Path(csv_path) / save_template)
+
+def summarize_wafer(csv_path: Path, 
+                    search_str: str='', save_template: str=''):
+    """summarize_wafer joins attributes on image number, looks to gather
+     FSDP_FWHM, FSDP_loc, FSDP_I, maxPeak_FWHM, maxPeak_loc, FSDP_I
+
+    :param csv_path: [description]
+    :type csv_path: Path
+    :param search_str: [description], defaults to ''
+    :type search_str: str, optional
+    :param save_template: [description], defaults to ''
+    :type save_template: str, optional
+    """
+    csv_list = folder_select(csv_path, search_str + '*derived_params.csv')
+    df = pd.DataFrame(columns=['scanNo', 'FSDP_FWHM', 'FSDP_loc', 'FSDP_I', 'maxPeak_FWHM', 'maxPeak_loc', 'FSDP_I'])
+    agg_df = pd.DataFrame(columns=[ 'scan_id', 'data_pt', 'FWHM'    ])
+    for f in csv_list: # Gather all the peaks together 
+        # currently hard coding file name conventions. bleh
+        data_pt = re.seach('(\d+)-(\d+)', str(f))[2]
+        scan_id = re.seach('(\d+)-(\d+)', str(f))[1]
+        curr_df = pd.read_csv(f).T
+        curr_df = curr_df.rename(columns=curr_df.iloc[0])
+        curr_df = curr_df.drop(curr_df.index[0]) # row=curve, col=property
+
+
+        
+    return 
+
+def plot_wafer_heat_map():
+    return 1
+
 
 def save_curve_fit(x, y, params: dict, spath: Path, 
                     template: str='', 

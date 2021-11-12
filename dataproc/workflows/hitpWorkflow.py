@@ -6,10 +6,12 @@ import pyFAI
 import pyFAI.detectors as dets
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.interpolate import UnivariateSpline
+
 
 from dataproc.operations.hitp import (create_single, load_image, create_scan, save_Itth, save_qchi, 
-                                integrate_1d_mg, fit_peak, save_dict, save_curve_fit, 
-                                bkgd_sub, summarize_params, bayesian_block_finder)
+                                fit_peak, save_dict, save_curve_fit, 
+                                bkgd_sub, bayesian_block_finder)
 from dataproc.operations.utils import single_select, folder_select
 
 def hitpWorkflow(configPath, downsample_int=10, noise_estimate=None, background=None, **kwargs):
@@ -33,11 +35,13 @@ def hitpWorkflow(configPath, downsample_int=10, noise_estimate=None, background=
     print(' =========== Starting processing script =========== ')
     # Process image files
     imList = folder_select(Path(cfg['imagePath']), f'*{cfg["searchString"]}*.tiff')
+    print(len(imList))
     ai = create_single(expInfo=expInfo)
     base_template = cfg['searchString']
     for im in imList:
         print(im)
         data_pt = re.search('(\d+).tiff', str(im))[1]
+        scan_no = re.search('Scan(\d+)', str(im))[1]
         template = base_template +'-'+ str(data_pt)
         img = load_image(im) 
         new_mask = det.mask | (img > 65500)
@@ -81,16 +85,33 @@ def hitpWorkflow(configPath, downsample_int=10, noise_estimate=None, background=
             # output/saving of blocks
             save_dict(curveParams, cfg['exportPath'], template + f'_block{i}_curve')
             save_dict(derivedParams, cfg['exportPath'], template + f'_block{i}_derived')
+            # grab block wide and append to literal params
+            maxI = np.max(ybit)
+            loc = xbit[np.where(ybit==np.max(ybit))]
+            yDataOffset = ybit - np.min(ybit) 
+            yRange = np.max(yDataOffset)
+            spline = UnivariateSpline(xbit, yDataOffset - yRange/2)
+            roots = spline.roots()
+            if len(roots) >= 2: 
+                fwhm= np.max(roots) - np.min(roots)
+            else: 
+                print('number of roots ({0}) < 2, at y={1}'.format(len(roots), yRange/2))
+                fwhm='N/A'
+            save_dict({'data_pt':data_pt, 'block': i, 'FWHM':fwhm, 'loc':loc,  'I':maxI}, 
+                        cfg['exportPath'], scan_no + f'_literal')
+            
+            # save image
             save_curve_fit(xbit, ybit, curveParams, cfg['exportPath'], 
                             template + f'_block{i}', peakShape=fitInfo['peakShape'])
-    
+                            
         # Save overall images
         print(f'    ----Saving whole scan data')
         save_qchi(ai, img, new_mask, cfg['exportPath'], template)
         save_Itth(ai, img, new_mask, cfg['exportPath'], template)
         
 
-        
+    # construct wafer maps 
+
 
 if __name__ == '__main__':
-    hitpWorkflow('/home/b_spec/roberttk/dataproc/dataproc/workflows/hitpConfig')
+    hitpWorkflow('C:\\Users\\roberttk\\Desktop\\SLAC_RA\\dataproc\\dataproc\\workflows\\hitpConfigLocal')
