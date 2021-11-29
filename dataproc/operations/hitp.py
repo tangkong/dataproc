@@ -274,8 +274,38 @@ def summarize_wafer(csv_path: Path,
         
     return 
 
-def plot_wafer_heat_map():
-    return 1
+def gen_FSDP_heat_map(literal_path: Path, scan_path: Path,
+                        spath: Path, template: str='')):
+    """ grab _literal_params and clean to only include FSDP, plot heat map"""
+    df = pd.read_csv(literal_path)
+    df = df.drop(columns=df.columns[0])
+
+    # grab FSDP based on criteria
+    valid_df = pd.DataFrame(columns=df.columns)
+    for dp in df['data_pt'].unique():
+        subdf =df[ (df['data_pt']==dp) &
+                    (2.3 < df['loc']) & (df['loc'] < 4.0) &
+                    (df['I'] > 10) & (df['FWHM']<2.0) ]
+        valid_df = valid_df.append(subdf.sort_values('loc').iloc[0])
+
+    # join on data_pt, x, y, {fsdp params}
+    scan_df = pd.read_csv(scan_path)
+
+    joined_df = scan_df.set_index('seq_num').join(valid_df.set_index('data_pt'))
+    joined_df = joined_df[['s_stage_py', 's_stage_px','FWHM','loc','I']]
+
+    # plot wafer map
+    plt.figure(figsize=(7,6))
+    plt.scatter(joined_df['s_stage_px'], joined_df['s_stage_py'],
+                c=joined_df['FWHM'], s=240, marker='s', linewidths=0.5,
+                edgecolors='k', cmap=cm.viridis_r)
+    plt.title('FWHM at first sharp peak')
+    plt.clim(scipy.stats.scoreatpercentile(joined_df['FWHM'], 5),from
+                scipy.stats.scoreatpercentile(joined_df['FWHM'], 95))
+    plt.colorbar()
+    plt.tight_layout()
+    plt.savefig(spath + template + 'FWHM_map.png') 
+
 
 
 def save_curve_fit(x, y, params: dict, spath: Path, 

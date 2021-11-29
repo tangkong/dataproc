@@ -1,0 +1,19 @@
+{
+    "imagePath": "C:\\Users\\roberttk\\Desktop\\SLAC_RA\\DATA\\Example HiTp\\scan3895",
+    "exportPath": "C:\\Users\\roberttk\\Desktop\\SLAC_RA\\DATA\\Example HiTp\\scan3895\\processed\\", 
+    "searchString": "3895",
+    "expInfo": {"dist": 0.2466,
+                "poni1": 0.06683,
+                "poni2": 0.0851,
+                "rot1":0.008086,
+                "rot2":0.5419,
+                "rot3":0.2763068,
+                "detector": "pilatus1M",
+                "wavelength": 0.7999E-10
+               },
+    "fitInfo": {"peakShape": "Voigt",
+                "fitMode": "fixed",
+                "numCurves": 3,
+                "blockBounds": [18, 21, 23.5]
+               }
+}
